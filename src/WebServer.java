@@ -32,7 +32,7 @@ public class WebServer {
         server.createContext("/bookings", new BookingListHandler());
         server.createContext("/ticket", new TicketHandler());
         server.createContext("/reports", new ReportHandler());
-        server.createContext("/login", new LoginHandler());
+        server.createContext("/admin", new AdminHandler());
         server.createContext("/logout", new LogoutHandler());
         
         server.setExecutor(null);
@@ -56,63 +56,55 @@ public class WebServer {
     }
     
     private void requireAdmin(HttpExchange exchange) throws IOException {
-        exchange.getResponseHeaders().set("Location", "/login");
+        exchange.getResponseHeaders().set("Location", "/admin");
         exchange.sendResponseHeaders(302, -1);
     }
 
-    private String getHeader(String title) {
-        return """
-        <html>
-        <head>
-            <title>%s - Bus Reservation</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
-                header { background: #2c3e50; color: #ecf0f1; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-                header a { color: #ecf0f1; text-decoration: none; margin-left: 15px; font-weight: bold; }
-                header a:hover { color: #3498db; }
-                .container { max-width: 1000px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                h1, h2 { color: #2c3e50; }
-                table { width: 100%%; border-collapse: collapse; margin-top: 15px; }
-                th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-                th { background: #34495e; color: white; }
-                .btn { background: #3498db; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
-                .btn:hover { background: #2980b9; }
-                .btn-danger { background: #e74c3c; }
-                .btn-danger:hover { background: #c0392b; }
-                .btn-success { background: #2ecc71; }
-                .btn-success:hover { background: #27ae60; }
-                .form-group { margin-bottom: 15px; }
-                .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-                .form-group input, .form-group select { width: 100%%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-                .alert { padding: 15px; background-color: #f44336; color: white; margin-bottom: 15px; border-radius: 4px; }
-                .seat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
-                .seat { padding: 15px; text-align: center; border-radius: 4px; font-weight: bold; color: white; }
-                .seat.available { background: #2ecc71; cursor: pointer; }
-                .seat.booked { background: #e74c3c; cursor: not-allowed; }
-                .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom:20px; }
-            </style>
-            <script>
-                function selectSeat(seatNo) {
-                    document.getElementById('selectedSeat').value = seatNo;
-                    alert('Seat ' + seatNo + ' selected. Now choose a passenger and book!');
-                }
-            </script>
-        </head>
-        <body>
-            <header>
-                <div><h3>Bus Reservation System</h3></div>
-                <div>
-                    <a href="/">Home</a>
-                    <a href="/buses">Buses</a>
-                    <a href="/passengers">Passengers</a>
-                    <a href="/book">Book Ticket</a>
-                    <a href="/bookings">Bookings</a>
-                    <a href="/reports">Reports</a>
-                    <a href="/logout" style="color: #ff7675; margin-left: 20px;">Logout</a>
-                </div>
-            </header>
-            <div class="container">
-        """.formatted(title);
+    private String getHeader(String title, boolean admin) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html><head><title>").append(title).append(" - Bus Reservation</title>");
+        sb.append("<style>");
+        sb.append("body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 0; }");
+        sb.append("header { background: #2c3e50; color: #ecf0f1; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }");
+        sb.append("header a { color: #ecf0f1; text-decoration: none; margin-left: 15px; font-weight: bold; }");
+        sb.append("header a:hover { color: #3498db; }");
+        sb.append(".container { max-width: 1000px; margin: 30px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }");
+        sb.append("h1, h2 { color: #2c3e50; }");
+        sb.append("table { width: 100%; border-collapse: collapse; margin-top: 15px; }");
+        sb.append("th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }");
+        sb.append("th { background: #34495e; color: white; }");
+        sb.append(".btn { background: #3498db; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }");
+        sb.append(".btn:hover { background: #2980b9; }");
+        sb.append(".btn-danger { background: #e74c3c; }");
+        sb.append(".btn-danger:hover { background: #c0392b; }");
+        sb.append(".btn-success { background: #2ecc71; }");
+        sb.append(".btn-success:hover { background: #27ae60; }");
+        sb.append(".form-group { margin-bottom: 15px; }");
+        sb.append(".form-group label { display: block; margin-bottom: 5px; font-weight: bold; }");
+        sb.append(".form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }");
+        sb.append(".alert { padding: 15px; background-color: #f44336; color: white; margin-bottom: 15px; border-radius: 4px; }");
+        sb.append(".seat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }");
+        sb.append(".seat { padding: 15px; text-align: center; border-radius: 4px; font-weight: bold; color: white; }");
+        sb.append(".seat.available { background: #2ecc71; cursor: pointer; }");
+        sb.append(".seat.booked { background: #e74c3c; cursor: not-allowed; }");
+        sb.append(".card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom:20px; }");
+        sb.append("</style>");
+        sb.append("<script>function selectSeat(seatNo) { document.getElementById('selectedSeat').value = seatNo; alert('Seat ' + seatNo + ' selected.'); }</script>");
+        sb.append("</head><body><header><div><h3>Bus Reservation System</h3></div><div>");
+        
+        sb.append("<a href='/'>Home</a>");
+        sb.append("<a href='/buses'>Buses</a>");
+        sb.append("<a href='/book'>Book Ticket</a>");
+        sb.append("<a href='/bookings'>Bookings</a>");
+        
+        if (admin) {
+            sb.append("<a href='/passengers'>Passengers</a>");
+            sb.append("<a href='/reports'>Reports</a>");
+            sb.append("<a href='/logout' style='color: #ff7675; margin-left: 20px;'>Logout</a>");
+        }
+        
+        sb.append("</div></header><div class='container'>");
+        return sb.toString();
     }
 
     private String getFooter() {
@@ -144,9 +136,15 @@ public class WebServer {
         return result;
     }
     
-    class LoginHandler implements HttpHandler {
+    class AdminHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (isAdmin(exchange)) {
+                exchange.getResponseHeaders().set("Location", "/");
+                exchange.sendResponseHeaders(302, -1);
+                return;
+            }
+            
             String method = exchange.getRequestMethod();
             String error = null;
 
@@ -182,6 +180,7 @@ public class WebServer {
             html.append("<input type='text' name='username' placeholder='Username (admin)' required>");
             html.append("<input type='password' name='password' placeholder='Password (admin123)' required>");
             html.append("<button type='submit' class='btn'>Login</button>");
+            html.append("<p style='margin-top:15px;'><a href='/'>Return Home</a></p>");
             html.append("</form></div></body></html>");
 
             byte[] bytes = html.toString().getBytes("UTF-8");
@@ -197,7 +196,7 @@ public class WebServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             exchange.getResponseHeaders().set("Set-Cookie", "session=; Path=/; Max-Age=0");
-            exchange.getResponseHeaders().set("Location", "/login");
+            exchange.getResponseHeaders().set("Location", "/");
             exchange.sendResponseHeaders(302, -1);
         }
     }
@@ -205,15 +204,26 @@ public class WebServer {
     class HomeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
-            
-            StringBuilder html = new StringBuilder(getHeader("Dashboard"));
+            boolean admin = isAdmin(exchange);
+            StringBuilder html = new StringBuilder(getHeader("Dashboard", admin));
             html.append("<h1>Welcome to Bus Reservation System</h1>");
             html.append("<div style='display:flex; gap: 20px; margin-top:20px;'>");
-            html.append("<div class='card' style='flex:1'><h2>").append(busManager.getAll().size()).append("</h2><p>Buses</p></div>");
-            html.append("<div class='card' style='flex:1'><h2>").append(passengerManager.getAll().size()).append("</h2><p>Passengers</p></div>");
+            html.append("<div class='card' style='flex:1'><h2>").append(busManager.getAll().size()).append("</h2><p>Active Routes</p></div>");
+            
+            if (admin) {
+                html.append("<div class='card' style='flex:1'><h2>").append(passengerManager.getAll().size()).append("</h2><p>Passengers</p></div>");
+            }
+            
             html.append("<div class='card' style='flex:1'><h2>").append(bookingManager.getAll().size()).append("</h2><p>Total Bookings</p></div>");
             html.append("</div>");
+            
+            if (!admin) {
+                html.append("<div style='margin-top:30px; text-align:center;'>");
+                html.append("<h3>Ready to travel?</h3>");
+                html.append("<a href='/book' class='btn btn-success' style='font-size: 18px; padding: 15px 30px;'>Book a Ticket Now</a>");
+                html.append("</div>");
+            }
+            
             html.append(getFooter());
             sendResponse(exchange, 200, html.toString());
         }
@@ -222,12 +232,13 @@ public class WebServer {
     class BusHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
-            
+            boolean admin = isAdmin(exchange);
             String method = exchange.getRequestMethod();
             String error = null;
 
             if ("POST".equalsIgnoreCase(method)) {
+                if (!admin) { requireAdmin(exchange); return; }
+                
                 InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
                 BufferedReader br = new BufferedReader(isr);
                 Map<String, String> params = parseForm(br.readLine());
@@ -270,33 +281,42 @@ public class WebServer {
                 }
             }
 
-            StringBuilder html = new StringBuilder(getHeader("Manage Buses"));
+            StringBuilder html = new StringBuilder(getHeader("Buses", admin));
             if (error != null) {
                 html.append("<div class='alert'>").append(error).append("</div>");
             }
-            html.append("<h2>Add New Bus</h2>");
-            html.append("<form method='POST'>");
-            html.append("<input type='hidden' name='action' value='add'>");
-            html.append("<div class='form-group'><label>Bus Number</label><input type='text' name='busNumber' required></div>");
-            html.append("<div class='form-group'><label>Type</label><select name='type'><option>Non-AC</option><option>AC</option><option>Sleeper</option></select></div>");
-            html.append("<div class='form-group'><label>From</label><input type='text' name='from' required></div>");
-            html.append("<div class='form-group'><label>To</label><input type='text' name='to' required></div>");
-            html.append("<div class='form-group'><label>Total Seats</label><input type='number' name='seats' required></div>");
-            html.append("<div class='form-group'><label>Base Fare</label><input type='number' step='0.01' name='fare' required></div>");
-            html.append("<button type='submit' class='btn btn-success'>Add Bus</button>");
-            html.append("</form>");
+            
+            if (admin) {
+                html.append("<h2>Add New Bus</h2>");
+                html.append("<form method='POST'>");
+                html.append("<input type='hidden' name='action' value='add'>");
+                html.append("<div class='form-group'><label>Bus Number</label><input type='text' name='busNumber' required></div>");
+                html.append("<div class='form-group'><label>Type</label><select name='type'><option>Non-AC</option><option>AC</option><option>Sleeper</option></select></div>");
+                html.append("<div class='form-group'><label>From</label><input type='text' name='from' required></div>");
+                html.append("<div class='form-group'><label>To</label><input type='text' name='to' required></div>");
+                html.append("<div class='form-group'><label>Total Seats</label><input type='number' name='seats' required></div>");
+                html.append("<div class='form-group'><label>Base Fare</label><input type='number' step='0.01' name='fare' required></div>");
+                html.append("<button type='submit' class='btn btn-success'>Add Bus</button>");
+                html.append("</form><hr>");
+            }
 
             html.append("<h2>Available Buses</h2>");
-            html.append("<table><tr><th>Bus No</th><th>Type</th><th>Route</th><th>Seats</th><th>Base Fare</th><th>Action</th></tr>");
+            html.append("<table><tr><th>Bus No</th><th>Type</th><th>Route</th><th>Seats</th><th>Base Fare</th>");
+            if (admin) html.append("<th>Action</th>");
+            html.append("</tr>");
+            
             for (Bus b : busManager.getAll()) {
                 html.append("<tr>")
                     .append("<td>").append(b.getBusNumber()).append("</td>")
                     .append("<td>").append(b.getType()).append("</td>")
                     .append("<td>").append(b.getFromRoute()).append(" -> ").append(b.getToRoute()).append("</td>")
                     .append("<td>").append(b.getTotalSeats()).append("</td>")
-                    .append("<td>&#8377;").append(b.getBaseFare()).append("</td>")
-                    .append("<td><form method='POST' style='margin:0;'><input type='hidden' name='action' value='delete'><input type='hidden' name='busNumber' value='").append(b.getBusNumber()).append("'><button class='btn btn-danger' type='submit'>Delete</button></form></td>")
-                    .append("</tr>");
+                    .append("<td>&#8377;").append(b.getBaseFare()).append("</td>");
+                
+                if (admin) {
+                    html.append("<td><form method='POST' style='margin:0;'><input type='hidden' name='action' value='delete'><input type='hidden' name='busNumber' value='").append(b.getBusNumber()).append("'><button class='btn btn-danger' type='submit'>Delete</button></form></td>");
+                }
+                html.append("</tr>");
             }
             html.append("</table>");
             html.append(getFooter());
@@ -308,6 +328,7 @@ public class WebServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            boolean admin = true;
             
             String method = exchange.getRequestMethod();
             String error = null;
@@ -344,7 +365,7 @@ public class WebServer {
                 }
             }
 
-            StringBuilder html = new StringBuilder(getHeader("Manage Passengers"));
+            StringBuilder html = new StringBuilder(getHeader("Manage Passengers", admin));
             if (error != null) {
                 html.append("<div class='alert'>").append(error).append("</div>");
             }
@@ -378,8 +399,7 @@ public class WebServer {
     class BookHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
-            
+            boolean admin = isAdmin(exchange);
             String method = exchange.getRequestMethod();
             String error = null;
             String successId = null;
@@ -408,7 +428,7 @@ public class WebServer {
             Map<String, String> queryParams = parseForm(exchange.getRequestURI().getQuery());
             String selectedBus = queryParams.get("bus");
 
-            StringBuilder html = new StringBuilder(getHeader("Book Ticket"));
+            StringBuilder html = new StringBuilder(getHeader("Book Ticket", admin));
             if (error != null) html.append("<div class='alert'>").append(error).append("</div>");
 
             html.append("<h2>Select Bus to View Layout</h2>");
@@ -464,8 +484,7 @@ public class WebServer {
     class BookingListHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
-            
+            boolean admin = isAdmin(exchange);
             String method = exchange.getRequestMethod();
             
             if ("POST".equalsIgnoreCase(method)) {
@@ -482,7 +501,7 @@ public class WebServer {
                 return;
             }
 
-            StringBuilder html = new StringBuilder(getHeader("All Bookings"));
+            StringBuilder html = new StringBuilder(getHeader("All Bookings", admin));
             html.append("<h2>Booking Records</h2>");
             html.append("<table><tr><th>Booking ID</th><th>Bus</th><th>Passenger</th><th>Seat No</th><th>Fare</th><th>Action</th></tr>");
             for (Booking b : bookingManager.getAll()) {
@@ -507,12 +526,11 @@ public class WebServer {
     class TicketHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
-            
+            boolean admin = isAdmin(exchange);
             Map<String, String> query = parseForm(exchange.getRequestURI().getQuery());
             String id = query.get("id");
             
-            StringBuilder html = new StringBuilder(getHeader("E-Ticket"));
+            StringBuilder html = new StringBuilder(getHeader("E-Ticket", admin));
             
             Booking b = bookingManager.get(id);
             if (b == null) {
@@ -548,8 +566,9 @@ public class WebServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            boolean admin = true;
             
-            StringBuilder html = new StringBuilder(getHeader("Reports"));
+            StringBuilder html = new StringBuilder(getHeader("Reports", admin));
             html.append("<h2>System Reports</h2>");
             
             html.append("<div class='card'><h3>Total Bookings: ").append(Report.getTotalBookings(bookingManager)).append("</h3></div>");
