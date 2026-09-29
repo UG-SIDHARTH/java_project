@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  bus-app:
+    build: .
+    ports:
+      - "6969:6969"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
