@@ -30,6 +30,6 @@ No external frameworks (Spring, Node, Maven, Gradle) were used. The `HttpServer`
    java -cp out Main
    ```
 4. Open your browser and navigate to:
-   [http://localhost:8080](http://localhost:8080)
+   [http://localhost:6969](http://localhost:6969)
    
 Sample data is automatically injected if the database files (`data/*.csv`) are empty.

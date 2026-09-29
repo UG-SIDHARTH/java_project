@@ -1096,7 +1096,7 @@ public class Main {
                 pm.add(new Passenger("P1003", "Bob Jr.", 10, "Male", "1122334455")); // Child
             }
 
-            WebServer server = new WebServer(8080, bm, pm, bkm);
+            WebServer server = new WebServer(6969, bm, pm, bkm);
             server.start();
 
         } catch (Exception e) {
@@ -1139,7 +1139,7 @@ No external frameworks (Spring, Node, Maven, Gradle) were used. The `HttpServer`
    java -cp out Main
    ```
 4. Open your browser and navigate to:
-   [http://localhost:8080](http://localhost:8080)
+   [http://localhost:6969](http://localhost:6969)
    
 Sample data is automatically injected if the database files (`data/*.csv`) are empty.
 """
