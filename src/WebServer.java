@@ -32,6 +32,8 @@ public class WebServer {
         server.createContext("/bookings", new BookingListHandler());
         server.createContext("/ticket", new TicketHandler());
         server.createContext("/reports", new ReportHandler());
+        server.createContext("/login", new LoginHandler());
+        server.createContext("/logout", new LogoutHandler());
         
         server.setExecutor(null);
     }
@@ -39,6 +41,23 @@ public class WebServer {
     public void start() {
         server.start();
         System.out.println("Web server started at http://localhost:" + server.getAddress().getPort());
+    }
+    
+    private boolean isAdmin(HttpExchange exchange) {
+        List<String> cookies = exchange.getRequestHeaders().get("Cookie");
+        if (cookies != null) {
+            for (String cookie : cookies) {
+                if (cookie.contains("session=admin_logged_in")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    private void requireAdmin(HttpExchange exchange) throws IOException {
+        exchange.getResponseHeaders().set("Location", "/login");
+        exchange.sendResponseHeaders(302, -1);
     }
 
     private String getHeader(String title) {
@@ -89,6 +108,7 @@ public class WebServer {
                     <a href="/book">Book Ticket</a>
                     <a href="/bookings">Bookings</a>
                     <a href="/reports">Reports</a>
+                    <a href="/logout" style="color: #ff7675; margin-left: 20px;">Logout</a>
                 </div>
             </header>
             <div class="container">
@@ -123,10 +143,70 @@ public class WebServer {
         }
         return result;
     }
+    
+    class LoginHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String method = exchange.getRequestMethod();
+            String error = null;
+
+            if ("POST".equalsIgnoreCase(method)) {
+                InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
+                BufferedReader br = new BufferedReader(isr);
+                Map<String, String> params = parseForm(br.readLine());
+                
+                String user = params.get("username");
+                String pass = params.get("password");
+                
+                if ("admin".equals(user) && "admin123".equals(pass)) {
+                    exchange.getResponseHeaders().set("Set-Cookie", "session=admin_logged_in; Path=/");
+                    exchange.getResponseHeaders().set("Location", "/");
+                    exchange.sendResponseHeaders(302, -1);
+                    return;
+                } else {
+                    error = "Invalid credentials!";
+                }
+            }
+
+            StringBuilder html = new StringBuilder();
+            html.append("<html><head><title>Admin Login</title><style>");
+            html.append("body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }");
+            html.append(".login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 320px; text-align: center; }");
+            html.append("input { width: 100%; padding: 12px; margin: 10px 0 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }");
+            html.append(".btn { background: #2ecc71; color: white; font-weight: bold; padding: 12px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }");
+            html.append(".alert { padding: 10px; background-color: #e74c3c; color: white; margin-bottom: 15px; border-radius: 4px; }");
+            html.append("</style></head><body>");
+            html.append("<div class='login-box'><h2>Secure Admin Access</h2>");
+            if (error != null) html.append("<div class='alert'>").append(error).append("</div>");
+            html.append("<form method='POST'>");
+            html.append("<input type='text' name='username' placeholder='Username (admin)' required>");
+            html.append("<input type='password' name='password' placeholder='Password (admin123)' required>");
+            html.append("<button type='submit' class='btn'>Login</button>");
+            html.append("</form></div></body></html>");
+
+            byte[] bytes = html.toString().getBytes("UTF-8");
+            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+            exchange.sendResponseHeaders(200, bytes.length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(bytes);
+            os.close();
+        }
+    }
+    
+    class LogoutHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            exchange.getResponseHeaders().set("Set-Cookie", "session=; Path=/; Max-Age=0");
+            exchange.getResponseHeaders().set("Location", "/login");
+            exchange.sendResponseHeaders(302, -1);
+        }
+    }
 
     class HomeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             StringBuilder html = new StringBuilder(getHeader("Dashboard"));
             html.append("<h1>Welcome to Bus Reservation System</h1>");
             html.append("<div style='display:flex; gap: 20px; margin-top:20px;'>");
@@ -142,6 +222,8 @@ public class WebServer {
     class BusHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             String method = exchange.getRequestMethod();
             String error = null;
 
@@ -225,6 +307,8 @@ public class WebServer {
     class PassengerHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             String method = exchange.getRequestMethod();
             String error = null;
 
@@ -294,6 +378,8 @@ public class WebServer {
     class BookHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             String method = exchange.getRequestMethod();
             String error = null;
             String successId = null;
@@ -378,6 +464,8 @@ public class WebServer {
     class BookingListHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             String method = exchange.getRequestMethod();
             
             if ("POST".equalsIgnoreCase(method)) {
@@ -419,6 +507,8 @@ public class WebServer {
     class TicketHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             Map<String, String> query = parseForm(exchange.getRequestURI().getQuery());
             String id = query.get("id");
             
@@ -457,6 +547,8 @@ public class WebServer {
     class ReportHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (!isAdmin(exchange)) { requireAdmin(exchange); return; }
+            
             StringBuilder html = new StringBuilder(getHeader("Reports"));
             html.append("<h2>System Reports</h2>");
             
