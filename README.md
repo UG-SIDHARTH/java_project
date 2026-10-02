@@ -1,35 +1,56 @@
-# Pure Java Bus Reservation System
+# Java Swing Bus Reservation System (JDBC & MySQL)
 
-A complete web-based Bus Reservation System built strictly with **Java 17+**. 
-No external frameworks (Spring, Node, Maven, Gradle) were used. The `HttpServer` from `com.sun.net.httpserver` is used to serve pages rendered dynamically using Java Text Blocks.
+This is a desktop-based Bus Reservation System demonstrating key principles of Object-Oriented Programming (OOP) in Java, along with Database Connectivity using JDBC and MySQL. 
+
+## Architecture 
+**Java Swing → OOP/Java Classes → JDBC → MySQL Database**
+
+- **Frontend**: Desktop GUI built using `javax.swing` components (`JFrame`, `JTable`, etc.).
+- **Application Logic**: Core domain objects (`Bus`, `ACBus`, `NonACBus`, `SleeperBus`) utilizing inheritance and polymorphism.
+- **Connectivity**: `DatabaseConnection` using the MySQL Connector/J driver.
+- **Backend**: MySQL Database storing permanent records of buses, passengers, and bookings.
 
 ## Features
-- Bus Management (AC, Non-AC, Sleeper)
-- Passenger Management
-- Seat Booking with visual grid (Prevents double booking)
-- Dynamic Fare Calculation (Base fare * Bus Type Multiplier * Age Discount)
-- CSV file based data storage
+- **Bus Management**: View available buses pulled dynamically from the MySQL database.
+- **Polymorphism in Action**: Dynamic fare calculation based on specific bus types (AC, Non-AC, Sleeper).
+- **GUI Booking**: Simple user interface to book tickets by entering passenger details.
+- **Transaction Safety**: Uses JDBC transactions (`setAutoCommit(false)`) to ensure database consistency between `passengers` and `bookings`.
 
-## File Structure & Modules
-1. **Bus Management**: `Bus.java`, `ACBus.java`, `NonACBus.java`, `SleeperBus.java`, `BusManager.java`
-2. **Passenger Management**: `Person.java`, `Passenger.java`, `PassengerManager.java`
-3. **Seat Reservation**: `Seat.java`, `Booking.java`, `BookingManager.java`
-4. **Fare Calculation**: `FareCalculator.java`, `Payment.java`
-5. **Data Storage & Exception Handling**: `FileManager.java`, `Validation.java`, `Report.java`, `InvalidInputException.java`, `BusNotFoundException.java`, `SeatAlreadyBookedException.java`
-6. **System Integration**: `Manageable.java`, `WebServer.java`, `Main.java`
+## Prerequisites
+- Java Development Kit (JDK 17+)
+- MySQL Server 8.0+ (or use Docker Desktop)
+- `mysql-connector-j-8.4.0.jar` (Already provided in the `lib/` directory)
 
-## How to Run
+## Getting Started
 
-1. Open your terminal in the root project folder (where `src` is).
-2. Compile the Java files:
-   ```bash
-   javac -d out src/*.java
-   ```
-3. Run the application:
-   ```bash
-   java -cp out Main
-   ```
-4. Open your browser and navigate to:
-   [http://localhost:6969](http://localhost:6969)
-   
-Sample data is automatically injected if the database files (`data/*.csv`) are empty.
+### 1. Database Setup
+You can set up the MySQL database using one of two methods:
+
+**Method A: Using Docker Compose (Recommended)**
+If you have Docker Desktop installed, simply run:
+```bash
+docker-compose up -d
+```
+*Note: This will automatically spin up a MySQL container on port 3306 and execute `database_setup.sql` to populate the schema and sample data.*
+
+**Method B: Manual MySQL Setup**
+1. Start your local MySQL server.
+2. Execute the `database_setup.sql` script in your MySQL environment to create the `bus_booking` database and its tables.
+
+### 2. Compilation
+Compile the Java files from the root of the project directory. Make sure to include the JDBC driver in the classpath:
+
+```powershell
+# Windows
+javac -cp "lib/mysql-connector-j-8.4.0.jar" -d out src/*.java
+```
+
+### 3. Running the Application
+Once compiled, run the `BusBookingGUI` class:
+
+```powershell
+# Windows
+java -cp "out;lib/mysql-connector-j-8.4.0.jar" BusBookingGUI
+```
+
+The GUI window will open, displaying the available buses and allowing you to book tickets directly into the database!
