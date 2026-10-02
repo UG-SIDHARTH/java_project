@@ -119,6 +119,19 @@ public class WebServer {
         os.write(bytes);
         os.close();
     }
+
+    private void serve404(HttpExchange exchange) throws IOException {
+        boolean admin = isAdmin(exchange);
+        StringBuilder html = new StringBuilder(getHeader("404 Not Found", admin));
+        html.append("<div class='card' style='padding: 80px 20px; margin-top: 40px; border: 2px dashed #e74c3c;'>");
+        html.append("<h1 style='font-size: 120px; color: #e74c3c; margin: 0; line-height: 1;'>404</h1>");
+        html.append("<h2 style='font-size: 32px; color: #2c3e50; margin-top: 10px;'>Oops! Page Not Found</h2>");
+        html.append("<p style='font-size: 18px; color: #7f8c8d; margin-bottom: 30px;'>The route you are looking for does not exist on this server.</p>");
+        html.append("<a href='/' class='btn btn-success' style='font-size: 18px; padding: 12px 30px;'>Return to Dashboard</a>");
+        html.append("</div>");
+        html.append(getFooter());
+        sendResponse(exchange, 404, html.toString());
+    }
     
     private Map<String, String> parseForm(String query) {
         Map<String, String> result = new HashMap<>();
@@ -204,6 +217,12 @@ public class WebServer {
     class HomeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            String path = exchange.getRequestURI().getPath();
+            if (!path.equals("/")) {
+                serve404(exchange);
+                return;
+            }
+            
             boolean admin = isAdmin(exchange);
             StringBuilder html = new StringBuilder(getHeader("Dashboard", admin));
             html.append("<h1>Welcome to Bus Reservation System</h1>");
